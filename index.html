@@ -428,10 +428,17 @@
 
       <!-- 基金快捷消费与兑换 -->
       <div class="pixel-box p-6 mb-6">
-        <h3 class="font-bold text-[#162A45] mb-2 text-lg flex items-center gap-2">
-          <i class="fa-solid fa-cart-shopping text-[#C9A87C]"></i> 基金直接消费项目
-        </h3>
-        <p class="text-xs text-[#8C9A9E] mb-5">当流动积分不足时，可使用长期基金进行高额消费。</p>
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-[#D8D1C1] pb-3 mb-4">
+          <div>
+            <h3 class="font-bold text-[#162A45] text-lg flex items-center gap-2">
+              <i class="fa-solid fa-cart-shopping text-[#C9A87C]"></i> 基金直接消费项目
+            </h3>
+            <p class="text-xs text-[#8C9A9E] mt-0.5">当流动积分不足时，可使用长期基金进行高额消费。</p>
+          </div>
+          <button onclick="openAddBankItemModal()" class="pixel-btn bg-[#162A45] text-white px-4 py-1.5 rounded-lg text-xs flex items-center gap-1 hover:bg-[#253e61]">
+            <i class="fa-solid fa-plus"></i> 添加基金消费项目
+          </button>
+        </div>
         <div id="bank-shop-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           <!-- 动态渲染基金消费项 -->
         </div>
@@ -751,6 +758,12 @@
         { id: 3, title: '游戏娱乐1小时', price: 15 },
         { id: 4, title: '购买一件小礼物', price: 100 }
       ],
+      bankItems: [
+        { id: 1, title: '看一部电影', price: 20 },
+        { id: 2, title: '点一杯奶茶', price: 30 },
+        { id: 3, title: '大餐奖励', price: 150 },
+        { id: 4, title: '心愿盲盒', price: 500 }
+      ],
       historyTrends: [
         { date: '10/28', points: 40 },
         { date: '10/29', points: 55 },
@@ -779,6 +792,7 @@
           if (!sysData.interestLogs) sysData.interestLogs = [];
           if (!sysData.pointLogs) sysData.pointLogs = [];
           if (!sysData.moneyLogs) sysData.moneyLogs = [];
+          if (!sysData.bankItems) sysData.bankItems = JSON.parse(JSON.stringify(sysData.shopItems || initialData.bankItems));
           if (!sysData.user.avatarIcon) sysData.user.avatarIcon = 'fa-solid fa-user-ninja';
         } catch(e) {
           sysData = JSON.parse(JSON.stringify(initialData));
@@ -1298,7 +1312,8 @@
       const bankGrid = document.getElementById('bank-shop-grid');
       if (bankGrid) {
         bankGrid.innerHTML = '';
-        sysData.shopItems.forEach(item => {
+        const items = sysData.bankItems || sysData.shopItems;
+        items.forEach(item => {
           const div = document.createElement('div');
           div.className = 'pixel-box-sm p-4 bg-white flex flex-col justify-between border-[#D8D1C1] h-full';
           div.innerHTML = `
@@ -1306,9 +1321,12 @@
               <div class="font-bold text-sm text-[#162A45] mb-2">${item.title}</div>
               <div class="font-bodoni text-[#162A45] font-bold text-base mt-1">${item.price} 基金额度</div>
             </div>
-            <button onclick="spendBankFund(${item.id})" class="mt-4 pixel-btn bg-[#162A45] text-white py-1.5 rounded text-xs hover:bg-[#253e61]">
-              <i class="fa-solid fa-receipt"></i> 基金直接支出
-            </button>
+            <div class="mt-4 flex gap-2">
+              <button onclick="spendBankFund(${item.id})" class="pixel-btn bg-[#162A45] text-white w-full py-1 rounded text-xs hover:bg-[#253e61]">
+                <i class="fa-solid fa-receipt"></i> 支出
+              </button>
+              <button onclick="deleteBankItem(${item.id})" class="text-[#D8D1C1] hover:text-[#B87D7B] px-1"><i class="fa-solid fa-trash"></i></button>
+            </div>
           `;
           bankGrid.appendChild(div);
         });
@@ -1316,7 +1334,8 @@
     }
 
     function spendBankFund(shopItemId) {
-      const item = sysData.shopItems.find(i => i.id === shopItemId);
+      const items = sysData.bankItems || sysData.shopItems;
+      const item = items.find(i => i.id === shopItemId);
       if (!item) return;
 
       if (sysData.fund < item.price) {
@@ -1330,6 +1349,44 @@
       saveData();
       renderAll();
       showToast(`使用基金成功购买：${item.title} (消费 ${item.price} 基金)`, 'success');
+    }
+
+    function openAddBankItemModal() {
+      const modal = document.getElementById('global-modal');
+      document.getElementById('modal-title').innerText = '添加基金消费项目';
+      document.getElementById('modal-body').innerHTML = `
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">项目名称</label>
+          <input id="modal-bank-title" type="text" class="w-full p-2 border rounded text-xs" placeholder="例如：旅行基金 / 大餐奖励">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">价格 (基金额度)</label>
+          <input id="modal-bank-price" type="number" class="w-full p-2 border rounded text-xs" value="50" min="1">
+        </div>
+      `;
+      document.getElementById('modal-confirm-btn').onclick = function() {
+        const title = document.getElementById('modal-bank-title').value.trim();
+        const price = parseFloat(document.getElementById('modal-bank-price').value);
+        if (!title || isNaN(price) || price <= 0) {
+          showToast('请输入正确的项目信息！', 'warning');
+          return;
+        }
+        if (!sysData.bankItems) sysData.bankItems = JSON.parse(JSON.stringify(sysData.shopItems));
+        sysData.bankItems.push({ id: Date.now(), title, price });
+        saveData();
+        renderBankPage();
+        closeModal();
+        showToast('基金消费项目添加成功！', 'success');
+      };
+      modal.classList.remove('hidden');
+    }
+
+    function deleteBankItem(id) {
+      if (!sysData.bankItems) sysData.bankItems = JSON.parse(JSON.stringify(sysData.shopItems));
+      sysData.bankItems = sysData.bankItems.filter(i => i.id !== id);
+      saveData();
+      renderBankPage();
+      showToast('基金消费项目已移除', 'info');
     }
 
     function editFundBalance() {
