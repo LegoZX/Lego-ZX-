@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>人生游戏化系统 - Gamified Life System</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js for stats -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Google Fonts for Morandi / Classic Serif Look (Bodoni & 思源宋体) -->
+  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Noto+Serif+SC:wght@400;600;700;900&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            morandi: {
+              main: '#162A45',    // 深蓝主色
+              card: '#D8D1C1',    // 莫兰迪燕麦米色
+              bg: '#F7F6F2',      // 页面柔暖底色
+              accent: '#8C9A9E',  // 莫兰迪雾蓝/灰
+              green: '#8F9E8B',   // 莫兰迪草绿
+              red: '#B87D7B',     // 莫兰迪干玫瑰红
+              yellow: '#C9A87C',  // 莫兰迪金棕
+              border: '#C0B7A6'   // 莫兰迪柔灰边框
+            }
+          },
+          fontFamily: {
+            bodoni: ['"Bodoni Moda"', 'serif'],
+            song: ['"Noto Serif SC"', 'SimSun', 'serif'],
+            serif: ['"Noto Serif SC"', '"Bodoni Moda"', 'serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* 莫兰迪柔和质感背景 */
+    body {
+      background-color: #F7F6F2;
+      background-image: 
+        radial-gradient(#D8D1C1 0.8px, transparent 0.8px),
+        radial-gradient(#D8D1C1 0.8px, #F7F6F2 0.8px);
+      background-size: 32px 32px;
+      background-position: 0 0, 16px 16px;
+      font-family: 'Noto Serif SC', 'Bodoni Moda', serif;
+      color: #162A45;
+    }
+
+    .font-bodoni {
+      font-family: 'Bodoni Moda', serif;
+    }
+
+    /* 莫兰迪质感边框与卡片效果 */
+    .pixel-box {
+      border: 2px solid #162A45;
+      box-shadow: 4px 4px 0px 0px #D8D1C1;
+      background: #FFFFFF;
+      border-radius: 8px;
+    }
+
+    .pixel-box-sm {
+      border: 1.5px solid #162A45;
+      box-shadow: 2px 2px 0px 0px #D8D1C1;
+      border-radius: 6px;
+    }
+
+    .pixel-btn {
+      border: 1.5px solid #162A45;
+      box-shadow: 3px 3px 0px 0px #162A45;
+      transition: all 0.15s ease;
+      font-weight: 600;
+    }
+    .pixel-btn:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0px 0px #162A45;
+    }
+    .pixel-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0px 0px #162A45;
+    }
+
+    /* 翻页时钟卡片 - 莫兰迪暗色系 */
+    .flip-card {
+      background: #162A45;
+      color: #F7F6F2;
+      border-radius: 8px;
+      font-family: 'Bodoni Moda', serif;
+      padding: 12px 20px;
+      box-shadow: inset 0 -4px 0 rgba(0,0,0,0.2), 0 4px 10px rgba(22, 42, 69, 0.15);
+      border: 2px solid #162A45;
+      font-weight: 700;
+    }
+
+    /* Toast 提示弹窗 */
+    #toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 9999;
+    }
+
+    /* 自定义滚动条 */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F7F6F2;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #D8D1C1;
+      border-radius: 4px;
+      border: 1px solid #162A45;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #8C9A9E;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col pb-12 font-song">
+
+  <!-- ==================== 顶部吸顶状态条 ==================== -->
+  <header class="sticky top-0 z-50 bg-[#F7F6F2]/95 backdrop-blur-md border-b-2 border-[#162A45] px-4 py-2.5 shadow-sm">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs md:text-sm font-bold">
+      <!-- 左侧：等级与经验值条 -->
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-1.5 bg-[#162A45] text-[#F7F6F2] px-3 py-1 rounded border border-[#162A45] shadow-sm">
+          <i class="fa-solid fa-crown text-[#C9A87C]"></i>
+          <span>Lv.<span id="status-level" class="font-bodoni">1</span></span>
+        </div>
+        <div class="w-32 md:w-48 bg-[#D8D1C1]/50 rounded-full h-4 border border-[#162A45] overflow-hidden relative">
+          <div id="status-exp-bar" class="bg-[#8C9A9E] h-full w-0 transition-all duration-300"></div>
+          <span id="status-exp-text" class="absolute inset-0 flex items-center justify-center text-[10px] text-[#162A45] font-bodoni font-bold">0/100</span>
+        </div>
+      </div>
+
+      <!-- 中间：三维属性 -->
+      <div class="flex items-center gap-2">
+        <span class="px-2.5 py-1 bg-[#8F9E8B]/20 text-[#2D402B] border border-[#8F9E8B] rounded flex items-center gap-1" title="生活经验">
+          <i class="fa-solid fa-leaf text-[#8F9E8B]"></i> 生活:<span id="status-attr-life" class="font-bodoni">0</span>
+        </span>
+        <span class="px-2.5 py-1 bg-[#8C9A9E]/20 text-[#1E333A] border border-[#8C9A9E] rounded flex items-center gap-1" title="学习经验">
+          <i class="fa-solid fa-book text-[#8C9A9E]"></i> 学习:<span id="status-attr-study" class="font-bodoni">0</span>
+        </span>
+        <span class="px-2.5 py-1 bg-[#B87D7B]/20 text-[#4A2625] border border-[#B87D7B] rounded flex items-center gap-1" title="工作经验">
+          <i class="fa-solid fa-briefcase text-[#B87D7B]"></i> 工作:<span id="status-attr-work" class="font-bodoni">0</span>
+        </span>
+      </div>
+
+      <!-- 右侧：积分与基金余额 -->
+      <div class="flex items-center gap-3">
+        <div class="bg-[#C9A87C]/20 text-[#4A3923] px-3 py-1 rounded border border-[#C9A87C] flex items-center gap-1.5">
+          <i class="fa-solid fa-star text-[#C9A87C]"></i>
+          <span>积分: <span id="status-points" class="font-bodoni text-sm font-bold text-[#4A3923]">0.0</span></span>
+        </div>
+        <div class="bg-[#D8D1C1] text-[#162A45] px-3 py-1 rounded border border-[#162A45] flex items-center gap-1.5">
+          <i class="fa-solid fa-piggy-bank text-[#162A45]"></i>
+          <span>基金: <span id="status-fund" class="font-bodoni text-sm font-bold text-[#162A45]">0.0</span></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== 顶部导航栏 ==================== -->
+  <nav class="bg-[#162A45] text-[#F7F6F2] shadow-md sticky top-[53px] z-40">
+    <div class="max-w-7xl mx-auto px-2 flex overflow-x-auto gap-1 py-2 no-scrollbar">
+      <button onclick="switchTab('tab-rules')" class="nav-btn px-4 py-1.5 rounded-t-lg font-semibold flex items-center gap-2 hover:bg-[#8C9A9E]/30 transition bg-[#8C9A9E]/40 border-t-2 border-[#D8D1C1]" data-tab="tab-rules">
+        <i class="fa-solid fa-scroll"></i> 规则与时钟
+      </button>
+      <button onclick="switchTab('tab-month')" class="nav-btn px-4 py-1.5 rounded-t-lg font-semibold flex items-center gap-2 hover:bg-[#8C9A9E]/30 transition" data-tab="tab-month">
+        <i class="fa-solid fa-calendar-check"></i> 月计划看板
+      </button>
+      <button onclick="switchTab('tab-daily')" class="nav-btn px-4 py-1.5 rounded-t-lg font-semibold flex items-center gap-2 hover:bg-[#8C9A9E]/30 transition" data-tab="tab-daily">
+        <i class="fa-solid fa-list-check"></i> 每日任务
+      </button>
+      <button onclick="switchTab('tab-shop')" class="nav-btn px-4 py-1.5 rounded-t-lg font-semibold flex items-center gap-2 hover:bg-[#8C9A9E]/30 transition" data-tab="tab-shop">
+        <i class="fa-solid fa-store"></i> 积分商城
+      </button>
+      <button onclick="switchTab('tab-bank')" class="nav-btn px-4 py-1.5 rounded-t-lg font-semibold flex items-center gap-2 hover:bg-[#8C9A9E]/30 transition" data-tab="tab-bank">
+        <i class="fa-solid fa-building-columns"></i> 基金银行
+      </button>
+      <button onclick="switchTab('tab-stats')" class="nav-btn px-4 py-1.5 rounded-t-lg font-semibold flex items-center gap-2 hover:bg-[#8C9A9E]/30 transition" data-tab="tab-stats">
+        <i class="fa-solid fa-chart-line"></i> 历史数据
+      </button>
+      <button onclick="switchTab('tab-profile')" class="nav-btn px-4 py-1.5 rounded-t-lg font-semibold flex items-center gap-2 hover:bg-[#8C9A9E]/30 transition" data-tab="tab-profile">
+        <i class="fa-solid fa-user-gear"></i> 个人角色
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Content Container -->
+  <main class="max-w-7xl mx-auto px-4 mt-6 flex-grow">
+
+    <!-- ==================== 页面1: 系统规则 & 翻页时钟 ==================== -->
+    <section id="tab-rules" class="tab-content block">
+      <div class="pixel-box p-8 mb-6 text-center bg-[#F7F6F2]">
+        <h1 class="text-3xl font-black text-[#162A45] mb-2 tracking-wide font-song">系统规则 <span class="font-bodoni font-normal tracking-widest text-2xl border-l-2 border-[#162A45] pl-3 ml-2 text-[#8C9A9E]">SYSTEM RULE</span></h1>
+        <p class="text-[#8C9A9E] text-sm">莫兰迪典雅风格 · 个人现实游戏化管理系统 · 保持自律与定力</p>
+        
+        <!-- 实时翻页时钟 -->
+        <div class="flex justify-center items-center gap-3 my-8">
+          <div class="flip-card text-3xl md:text-5xl" id="clock-hours">00</div>
+          <span class="text-3xl font-black text-[#162A45] animate-pulse font-bodoni">:</span>
+          <div class="flip-card text-3xl md:text-5xl" id="clock-minutes">00</div>
+          <span class="text-3xl font-black text-[#162A45] animate-pulse font-bodoni">:</span>
+          <div class="flip-card text-3xl md:text-5xl" id="clock-seconds">00</div>
+        </div>
+
+        <div class="flex justify-center gap-4">
+          <button onclick="settleDailyPointsManually()" class="pixel-btn bg-[#C9A87C] text-white px-5 py-2.5 rounded-lg flex items-center gap-2 hover:bg-[#B59567]">
+            <i class="fa-solid fa-rotate"></i> 执行今日积分日终清算（结存至基金）
+          </button>
+        </div>
+      </div>
+
+      <!-- 规则条款 -->
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="pixel-box p-5 border-l-8 border-l-[#8C9A9E]">
+          <h3 class="font-bold text-lg text-[#162A45] flex items-center gap-2 mb-2">
+            <span class="w-6 h-6 rounded-full bg-[#8C9A9E] text-white flex items-center justify-center text-xs font-bodoni">1</span> 任务赚分
+          </h3>
+          <p class="text-[#162A45]/80 text-sm leading-relaxed">按时完成生活类、学习类、工作类任务，即可实时领取对应的经验值与流动积分。</p>
+        </div>
+
+        <div class="pixel-box p-5 border-l-8 border-l-[#C9A87C]">
+          <h3 class="font-bold text-lg text-[#162A45] flex items-center gap-2 mb-2">
+            <span class="w-6 h-6 rounded-full bg-[#C9A87C] text-white flex items-center justify-center text-xs font-bodoni">2</span> 娱乐花分
+          </h3>
+          <p class="text-[#162A45]/80 text-sm leading-relaxed">所有娱乐、购物、美食等兑换项目均需消耗流动积分。兑换后项目保留，可重复兑换。</p>
+        </div>
+
+        <div class="pixel-box p-5 border-l-8 border-l-[#8F9E8B]">
+          <h3 class="font-bold text-lg text-[#162A45] flex items-center gap-2 mb-2">
+            <span class="w-6 h-6 rounded-full bg-[#8F9E8B] text-white flex items-center justify-center text-xs font-bodoni">3</span> 自动储蓄与基金计息
+          </h3>
+          <p class="text-[#162A45]/80 text-sm leading-relaxed">每日未消耗的流动积分会在清算时存入基金银行。若满 7 天没有从基金银行兑换消耗，自动发放 +3% 储蓄利息！</p>
+        </div>
+
+        <div class="pixel-box p-5 border-l-8 border-l-[#B87D7B]">
+          <h3 class="font-bold text-lg text-[#162A45] flex items-center gap-2 mb-2">
+            <span class="w-6 h-6 rounded-full bg-[#B87D7B] text-white flex items-center justify-center text-xs font-bodoni">4</span> 严禁赊账与金钱法则
+          </h3>
+          <p class="text-[#162A45]/80 text-sm leading-relaxed">严格禁止赊账消费！若流动积分不足，需先通过完成日常或月度任务赚取积分后再兑换。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 页面2: 月计划看板 ==================== -->
+    <section id="tab-month" class="tab-content hidden">
+      <div class="pixel-box p-5 mb-6 bg-white">
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-[#D8D1C1] pb-4 mb-4">
+          <div>
+            <h2 class="text-2xl font-bold text-[#162A45]">月度计划看板 <span class="font-bodoni text-lg text-[#8C9A9E] font-normal">MONTHLY PLAN</span></h2>
+            <p class="text-xs text-[#8C9A9E] mt-1">制定大任务与分解步骤，月末完成奖励丰厚积分！</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="openAddMonthTaskModal()" class="pixel-btn bg-[#8C9A9E] text-white px-4 py-2 rounded-lg text-sm flex items-center gap-1 hover:bg-[#7B8B8F]">
+              <i class="fa-solid fa-plus"></i> 新增月大任务
+            </button>
+            <button onclick="settleMonthPlan()" class="pixel-btn bg-[#B87D7B] text-white px-4 py-2 rounded-lg text-sm flex items-center gap-1 hover:bg-[#A66C6A]">
+              <i class="fa-solid fa-flag-checkered"></i> 月末结算
+            </button>
+          </div>
+        </div>
+
+        <!-- 统计面板 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div class="p-3 rounded-lg border border-[#8F9E8B] bg-[#8F9E8B]/10 text-[#2D402B] flex justify-between items-center">
+            <span class="text-sm font-bold"><i class="fa-solid fa-circle-check"></i> 全部完成奖励设置：</span>
+            <span class="font-bold text-lg font-bodoni">+<span id="month-reward-points">300</span> 积分</span>
+          </div>
+          <div class="p-3 rounded-lg border border-[#B87D7B] bg-[#B87D7B]/10 text-[#4A2625] flex justify-between items-center">
+            <span class="text-sm font-bold"><i class="fa-solid fa-circle-xmark"></i> 未完成惩罚扣除：</span>
+            <span class="font-bold text-lg font-bodoni">-<span id="month-penalty-points">150</span> 积分</span>
+          </div>
+        </div>
+
+        <!-- 看板卡片列表 container -->
+        <div id="month-tasks-container" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <!-- 动态渲染月度任务看板卡片 -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 页面3: 每日任务 ==================== -->
+    <section id="tab-daily" class="tab-content hidden">
+      <div class="pixel-box p-5 mb-6">
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-[#D8D1C1] pb-4 mb-4">
+          <div>
+            <h2 class="text-2xl font-bold text-[#162A45]">每日任务 <span class="font-bodoni text-lg text-[#8C9A9E] font-normal">DAILY TASKS</span></h2>
+            <p class="text-xs text-[#8C9A9E] mt-1">选择今日完成的任务提交结算，积累经验与流动积分</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button onclick="submitDailyTasks()" class="pixel-btn bg-[#8F9E8B] text-white px-6 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-[#7E8D7A]">
+              <i class="fa-solid fa-paper-plane"></i> 提交已勾选任务结算
+            </button>
+          </div>
+        </div>
+
+        <!-- 3列任务面板：生活、学习、工作 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- 1. 生活类 -->
+          <div class="pixel-box-sm bg-[#8F9E8B]/10 p-3 flex flex-col h-full border-[#8F9E8B]">
+            <div class="flex justify-between items-center mb-3 pb-2 border-b border-[#8F9E8B]/40">
+              <span class="font-bold text-[#2D402B] flex items-center gap-1.5"><i class="fa-solid fa-leaf text-[#8F9E8B]"></i> 生活类</span>
+              <button onclick="openAddTaskModal('life')" class="text-xs px-2.5 py-1 bg-[#8F9E8B] text-white rounded hover:bg-[#7E8D7A] font-semibold">+添加</button>
+            </div>
+            <div id="daily-list-life" class="space-y-2 flex-grow"></div>
+          </div>
+
+          <!-- 2. 学习类 -->
+          <div class="pixel-box-sm bg-[#8C9A9E]/10 p-3 flex flex-col h-full border-[#8C9A9E]">
+            <div class="flex justify-between items-center mb-3 pb-2 border-b border-[#8C9A9E]/40">
+              <span class="font-bold text-[#1E333A] flex items-center gap-1.5"><i class="fa-solid fa-book text-[#8C9A9E]"></i> 学习类</span>
+              <button onclick="openAddTaskModal('study')" class="text-xs px-2.5 py-1 bg-[#8C9A9E] text-white rounded hover:bg-[#7B8B8F] font-semibold">+添加</button>
+            </div>
+            <div id="daily-list-study" class="space-y-2 flex-grow"></div>
+          </div>
+
+          <!-- 3. 工作类 -->
+          <div class="pixel-box-sm bg-[#B87D7B]/10 p-3 flex flex-col h-full border-[#B87D7B]">
+            <div class="flex justify-between items-center mb-3 pb-2 border-b border-[#B87D7B]/40">
+              <span class="font-bold text-[#4A2625] flex items-center gap-1.5"><i class="fa-solid fa-briefcase text-[#B87D7B]"></i> 工作类</span>
+              <button onclick="openAddTaskModal('work')" class="text-xs px-2.5 py-1 bg-[#B87D7B] text-white rounded hover:bg-[#A66C6A] font-semibold">+添加</button>
+            </div>
+            <div id="daily-list-work" class="space-y-2 flex-grow"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 页面4: 积分商城 ==================== -->
+    <section id="tab-shop" class="tab-content hidden">
+      <div class="pixel-box p-5 mb-6">
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-[#D8D1C1] pb-4 mb-4">
+          <div>
+            <h2 class="text-2xl font-bold text-[#162A45]">积分商城 <span class="font-bodoni text-lg text-[#8C9A9E] font-normal">POINT MALL</span></h2>
+            <p class="text-xs text-[#8C9A9E] mt-1">使用流动积分兑换娱乐享受（兑换后商品保留，可重复兑换）</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="openAddShopItemModal()" class="pixel-btn bg-[#8C9A9E] text-white px-4 py-2 rounded-lg text-sm hover:bg-[#7B8B8F]">
+              <i class="fa-solid fa-plus"></i> 添加兑换商品
+            </button>
+            <button onclick="depositRemainingPointsToFund()" class="pixel-btn bg-[#C9A87C] text-white px-4 py-2 rounded-lg text-sm hover:bg-[#B59567]">
+              <i class="fa-solid fa-piggy-bank"></i> 剩余积分一键存入基金
+            </button>
+          </div>
+        </div>
+
+        <!-- 积分汇总展示 -->
+        <div class="flex justify-center gap-6 mb-6">
+          <div class="pixel-box-sm px-8 py-3 text-center bg-[#C9A87C]/10 border-[#C9A87C]">
+            <div class="text-xs text-[#4A3923] font-bold">流动积分余额</div>
+            <div id="shop-current-points" class="text-3xl font-bodoni font-bold text-[#C9A87C] mt-1">0.0</div>
+          </div>
+        </div>
+
+        <!-- 商品列表 grid -->
+        <div id="shop-items-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+          <!-- 动态渲染商城商品 -->
+        </div>
+
+        <!-- 积分收支明细板块 -->
+        <div class="border-t border-[#D8D1C1] pt-6">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="font-bold text-[#162A45] text-lg flex items-center gap-2">
+              <i class="fa-solid fa-receipt text-[#C9A87C]"></i> 积分收支明细 <span class="font-bodoni text-xs font-normal text-[#8C9A9E]">INCOME & EXPENSE</span>
+            </h3>
+            <button onclick="clearPointLogs()" class="text-xs text-[#8C9A9E] hover:text-[#B87D7B] font-bold">清空日志</button>
+          </div>
+          <div class="overflow-x-auto max-h-64 overflow-y-auto pixel-box-sm bg-white">
+            <table class="w-full text-xs text-left border-collapse">
+              <thead class="sticky top-0 bg-[#F7F6F2] border-b border-[#D8D1C1] text-[#162A45]">
+                <tr>
+                  <th class="p-2.5">时间</th>
+                  <th class="p-2.5">类型</th>
+                  <th class="p-2.5">说明</th>
+                  <th class="p-2.5">变动积分</th>
+                  <th class="p-2.5">变动后余额</th>
+                </tr>
+              </thead>
+              <tbody id="shop-point-logs">
+                <!-- 动态渲染积分收支日志 -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 页面5: 基金银行 ==================== -->
+    <section id="tab-bank" class="tab-content hidden">
+      <div class="pixel-box p-8 mb-6 text-center bg-gradient-to-b from-[#F7F6F2] to-[#D8D1C1]/20">
+        <h2 class="text-2xl font-bold text-[#162A45] mb-1">基金银行 <span class="font-bodoni text-lg text-[#8C9A9E] font-normal">FUND BANK</span></h2>
+        <p class="text-xs text-[#8C9A9E] mb-2">长期积累的财富池 (双击下方金额可手动微调)</p>
+        <div id="bank-interest-tip" class="text-xs text-[#2D402B] bg-[#8F9E8B]/20 inline-block px-3 py-1 rounded-full border border-[#8F9E8B] mb-4 font-bold">
+          <i class="fa-solid fa-piggy-bank text-[#8F9E8B]"></i> 连续7天无基金消费自动计息 +3%
+        </div>
+
+        <!-- 超大号余额数字 -->
+        <div class="my-4 cursor-pointer inline-block" title="双击直接修改基金余额" ondblclick="editFundBalance()">
+          <span id="bank-fund-large" class="text-5xl md:text-6xl font-bodoni text-[#162A45] font-bold tracking-tight hover:scale-105 transition-transform inline-block">
+            0.00
+          </span>
+        </div>
+
+        <!-- 今日统计数据 -->
+        <div class="flex justify-center gap-4 mt-4">
+          <div class="pixel-box-sm px-5 py-2.5 bg-white text-xs">
+            <span class="text-[#8C9A9E]">今日基金存入：</span>
+            <span id="bank-today-deposit" class="font-bold text-[#8F9E8B] font-bodoni text-sm">+0.0</span>
+          </div>
+          <div class="pixel-box-sm px-5 py-2.5 bg-white text-xs">
+            <span class="text-[#8C9A9E]">今日基金支出：</span>
+            <span id="bank-today-expense" class="font-bold text-[#B87D7B] font-bodoni text-sm">-0.0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 基金快捷消费与兑换 -->
+      <div class="pixel-box p-6 mb-6">
+        <h3 class="font-bold text-[#162A45] mb-2 text-lg flex items-center gap-2">
+          <i class="fa-solid fa-cart-shopping text-[#C9A87C]"></i> 基金直接消费项目
+        </h3>
+        <p class="text-xs text-[#8C9A9E] mb-5">当流动积分不足时，可使用长期基金进行高额消费。</p>
+        <div id="bank-shop-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <!-- 动态渲染基金消费项 -->
+        </div>
+      </div>
+
+      <!-- 利息凭证日志 -->
+      <div class="pixel-box p-6 mb-6">
+        <h3 class="font-bold text-[#162A45] mb-4 text-lg flex items-center justify-between">
+          <span class="flex items-center gap-2"><i class="fa-solid fa-file-invoice-dollar text-[#8F9E8B]"></i> 利息结算日志与凭证记录</span>
+          <button onclick="checkBankInterest(true)" class="text-xs pixel-btn bg-[#8F9E8B] text-white px-3.5 py-1.5 rounded">手动检测利息</button>
+        </h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs text-left border-collapse">
+            <thead>
+              <tr class="bg-[#F7F6F2] border-b border-[#D8D1C1] text-[#162A45]">
+                <th class="p-3">结算时间</th>
+                <th class="p-3">结算前余额</th>
+                <th class="p-3">周利率</th>
+                <th class="p-3">获得利息(+3%)</th>
+                <th class="p-3">结算后余额</th>
+              </tr>
+            </thead>
+            <tbody id="bank-interest-logs">
+              <!-- 动态渲染利息凭证 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 页面6: 历史数据统计 ==================== -->
+    <section id="tab-stats" class="tab-content hidden">
+      <div class="pixel-box p-6 mb-6">
+        <h2 class="text-2xl font-bold text-[#162A45] mb-6">历史数据统计 <span class="font-bodoni text-lg text-[#8C9A9E] font-normal">DATA STATS</span></h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- 7天积分趋势 -->
+          <div class="pixel-box-sm p-6 bg-white">
+            <h3 class="font-bold text-sm text-[#162A45] mb-4 flex items-center gap-2">
+              <i class="fa-solid fa-chart-line text-[#8C9A9E]"></i> 近7日积分获取趋势
+            </h3>
+            <div class="h-72">
+              <canvas id="chart-trend"></canvas>
+            </div>
+          </div>
+
+          <!-- 三维属性占比饼图 -->
+          <div class="pixel-box-sm p-6 bg-white">
+            <h3 class="font-bold text-sm text-[#162A45] mb-4 flex items-center gap-2">
+              <i class="fa-solid fa-chart-pie text-[#8C9A9E]"></i> 三维属性经验分布
+            </h3>
+            <div class="h-72 flex justify-center">
+              <canvas id="chart-attr"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 页面7: 个人角色面板 ==================== -->
+    <section id="tab-profile" class="tab-content hidden">
+      <div class="grid md:grid-cols-3 gap-6">
+
+        <!-- 左侧个人信息 -->
+        <div class="pixel-box p-5 text-center flex flex-col items-center">
+          <div class="relative mb-3 cursor-pointer group" onclick="openAvatarModal()" title="点击更换头像">
+            <div id="profile-avatar-box" class="w-24 h-24 rounded-full bg-[#162A45] border-4 border-[#C9A87C] flex items-center justify-center text-white text-4xl shadow-inner group-hover:opacity-90 transition">
+              <i id="profile-avatar-icon" class="fa-solid fa-user-ninja text-[#F7F6F2]"></i>
+            </div>
+            <span class="absolute bottom-0 right-0 bg-[#C9A87C] text-[#162A45] text-xs font-bodoni px-2 py-0.5 rounded-full border border-[#162A45] font-bold">
+              Lv.<span id="profile-level">1</span>
+            </span>
+            <div class="absolute inset-0 flex items-center justify-center bg-[#162A45]/60 rounded-full opacity-0 group-hover:opacity-100 transition text-[#F7F6F2] text-xs font-bold">
+              更换头像
+            </div>
+          </div>
+          <h3 class="text-xl font-bold text-[#162A45]" id="profile-name">高能玩家</h3>
+          <p class="text-xs text-[#8C9A9E] mt-1">“每天进步一点点，构建强大自我。”</p>
+
+          <!-- 三维属性卡 -->
+          <div class="w-full mt-6 space-y-2 text-left">
+            <div class="text-xs font-bold text-[#162A45]/80 mb-1">属性能力值：</div>
+            <div class="flex justify-between items-center text-xs bg-[#8F9E8B]/10 p-2.5 rounded border border-[#8F9E8B]">
+              <span><i class="fa-solid fa-leaf text-[#8F9E8B]"></i> 生活属性</span>
+              <span id="profile-attr-life" class="font-bold text-[#2D402B] font-bodoni">0</span>
+            </div>
+            <div class="flex justify-between items-center text-xs bg-[#8C9A9E]/10 p-2.5 rounded border border-[#8C9A9E]">
+              <span><i class="fa-solid fa-book text-[#8C9A9E]"></i> 学习属性</span>
+              <span id="profile-attr-study" class="font-bold text-[#1E333A] font-bodoni">0</span>
+            </div>
+            <div class="flex justify-between items-center text-xs bg-[#B87D7B]/10 p-2.5 rounded border border-[#B87D7B]">
+              <span><i class="fa-solid fa-briefcase text-[#B87D7B]"></i> 工作属性</span>
+              <span id="profile-attr-work" class="font-bold text-[#4A2625] font-bodoni">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右侧成就与数据备份 -->
+        <div class="md:col-span-2 space-y-6">
+
+          <!-- 成就徽章 -->
+          <div class="pixel-box p-5">
+            <h3 class="font-bold text-[#162A45] text-lg mb-3">成就徽章 <span class="font-bodoni text-xs font-normal text-[#8C9A9E]">ACHIEVEMENTS</span></h3>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div class="p-3 border rounded text-center bg-[#C9A87C]/10 border-[#C9A87C]">
+                <i class="fa-solid fa-seedling text-[#C9A87C] text-2xl mb-1"></i>
+                <div class="text-xs font-bold text-[#162A45]">初出茅庐</div>
+                <div class="text-[10px] text-[#8C9A9E]">系统已启动</div>
+              </div>
+              <div class="p-3 border rounded text-center bg-[#8C9A9E]/10 border-[#8C9A9E]">
+                <i class="fa-solid fa-book-bookmark text-[#8C9A9E] text-2xl mb-1"></i>
+                <div class="text-xs font-bold text-[#162A45]">知行合一</div>
+                <div class="text-[10px] text-[#8C9A9E]">完成学习任务</div>
+              </div>
+              <div class="p-3 border rounded text-center bg-[#8F9E8B]/10 border-[#8F9E8B]">
+                <i class="fa-solid fa-coins text-[#8F9E8B] text-2xl mb-1"></i>
+                <div class="text-xs font-bold text-[#162A45]">储蓄达人</div>
+                <div class="text-[10px] text-[#8C9A9E]">基金破百</div>
+              </div>
+              <div class="p-3 border rounded text-center bg-[#B87D7B]/10 border-[#B87D7B]">
+                <i class="fa-solid fa-award text-[#B87D7B] text-2xl mb-1"></i>
+                <div class="text-xs font-bold text-[#162A45]">自律大师</div>
+                <div class="text-[10px] text-[#8C9A9E]">连续完成任务</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 数据备份与重置 -->
+          <div class="pixel-box p-5">
+            <h3 class="font-bold text-[#162A45] text-lg mb-3">系统数据管理 <span class="font-bodoni text-xs font-normal text-[#8C9A9E]">DATA MANAGEMENT</span></h3>
+            <p class="text-xs text-[#8C9A9E] mb-4">您可以导出全部数据备份为 JSON 文件，或导入先前的备份。</p>
+            <div class="flex flex-wrap gap-3">
+              <button onclick="exportDataJSON()" class="pixel-btn bg-[#8C9A9E] text-white px-4 py-2 rounded-lg text-sm flex items-center gap-1 hover:bg-[#7B8B8F]">
+                <i class="fa-solid fa-download"></i> 导出 JSON 备份
+              </button>
+              <label class="pixel-btn bg-[#8F9E8B] text-white px-4 py-2 rounded-lg text-sm flex items-center gap-1 cursor-pointer hover:bg-[#7E8D7A]">
+                <i class="fa-solid fa-upload"></i> 导入 JSON 备份
+                <input type="file" id="import-file" class="hidden" accept=".json" onchange="importDataJSON(event)">
+              </label>
+              <button onclick="clearSystemData()" class="pixel-btn bg-[#B87D7B] text-white px-4 py-2 rounded-lg text-sm flex items-center gap-1 ml-auto hover:bg-[#A66C6A]">
+                <i class="fa-solid fa-trash-can"></i> 清空数据重置
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== 模态框 Modal：添加任务/商品/选头像 ==================== -->
+  <div id="global-modal" class="fixed inset-0 bg-[#162A45]/50 z-50 flex items-center justify-center hidden backdrop-blur-sm">
+    <div class="pixel-box bg-white max-w-md w-full p-6 mx-4">
+      <div class="flex justify-between items-center mb-4 border-b border-[#D8D1C1] pb-2">
+        <h3 id="modal-title" class="font-bold text-lg text-[#162A45]">添加项目</h3>
+        <button onclick="closeModal()" class="text-[#8C9A9E] hover:text-[#162A45] font-bold text-xl">&times;</button>
+      </div>
+      <div id="modal-body" class="space-y-4">
+        <!-- 动态生成表单内容 -->
+      </div>
+      <div class="flex justify-end gap-3 mt-6">
+        <button onclick="closeModal()" class="px-4 py-2 rounded border border-[#D8D1C1] text-sm font-bold text-[#162A45]">取消</button>
+        <button id="modal-confirm-btn" class="pixel-btn bg-[#162A45] text-white px-5 py-2 rounded text-sm">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast 消息容器 -->
+  <div id="toast-container"></div>
+
+  <!-- ==================== JavaScript 核心系统逻辑 ==================== -->
+  <script>
+    const STORAGE_KEY = 'wb_pts_system_v2';
+
+    // 可选像素头像列表及解锁等级
+    const AVATAR_OPTIONS = [
+      { id: 'ninja', icon: 'fa-solid fa-user-ninja', name: '忍者', reqLevel: 1 },
+      { id: 'astronaut', icon: 'fa-solid fa-user-astronaut', name: '宇航员', reqLevel: 1 },
+      { id: 'wizard', icon: 'fa-solid fa-hat-wizard', name: '大魔法师', reqLevel: 2 },
+      { id: 'crown', icon: 'fa-solid fa-user-tie', name: '精英统帅', reqLevel: 3 },
+      { id: 'dragon', icon: 'fa-solid fa-dragon', name: '龙骑士', reqLevel: 5 },
+      { id: 'robot', icon: 'fa-solid fa-robot', name: '高阶智械', reqLevel: 8 },
+      { id: 'phoenix', icon: 'fa-solid fa-spaghetti-monster-flying', name: '终极战神', reqLevel: 10 }
+    ];
+
+    // 默认初始数据
+    const initialData = {
+      user: {
+        name: '高能玩家',
+        level: 1,
+        exp: 0,
+        maxExp: 100,
+        attrLife: 0,
+        attrStudy: 0,
+        attrWork: 0,
+        avatarIcon: 'fa-solid fa-user-ninja'
+      },
+      points: 0.0,
+      fund: 0.0,
+      todayDeposit: 0.0,
+      todayExpense: 0.0,
+      lastFundExpenseTime: Date.now(),
+      interestLogs: [],
+      pointLogs: [],
+      monthPlan: {
+        reward: 300,
+        penalty: 150,
+        tasks: [
+          { id: 1, title: '完成一本专业书籍阅读', sub: [{text: '第1-5章', done: true}, {text: '第6-10章', done: false}], done: false },
+          { id: 2, title: '坚持晨跑达到15天', sub: [{text: '第1周打卡', done: true}], done: false }
+        ]
+      },
+      dailyTasks: {
+        life: [
+          { id: 101, title: '整理房间床铺', point: 5, attr: 'life' },
+          { id: 102, title: '喝够2000ml水', point: 5, attr: 'life' }
+        ],
+        study: [
+          { id: 201, title: '阅读技术文档30分钟', point: 15, attr: 'study' },
+          { id: 202, title: '背诵20个新词汇', point: 10, attr: 'study' }
+        ],
+        work: [
+          { id: 301, title: '按时高效完成工作清单', point: 20, attr: 'work' }
+        ]
+      },
+      shopItems: [
+        { id: 1, title: '看一部电影', price: 20 },
+        { id: 2, title: '点一杯奶茶', price: 30 },
+        { id: 3, title: '游戏娱乐1小时', price: 15 },
+        { id: 4, title: '购买一件小礼物', price: 100 }
+      ],
+      historyTrends: [
+        { date: '10/28', points: 40 },
+        { date: '10/29', points: 55 },
+        { date: '10/30', points: 30 },
+        { date: '10/31', points: 70 },
+        { date: '11/01', points: 60 },
+        { date: '11/02', points: 45 },
+        { date: '11/03', points: 80 }
+      ]
+    };
+
+    let sysData = {};
+    let chartTrendInstance = null;
+    let chartAttrInstance = null;
+
+    function saveData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(sysData));
+    }
+
+    function loadData() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          sysData = JSON.parse(saved);
+          if (!sysData.lastFundExpenseTime) sysData.lastFundExpenseTime = Date.now();
+          if (!sysData.interestLogs) sysData.interestLogs = [];
+          if (!sysData.pointLogs) sysData.pointLogs = [];
+          if (!sysData.user.avatarIcon) sysData.user.avatarIcon = 'fa-solid fa-user-ninja';
+        } catch(e) {
+          sysData = JSON.parse(JSON.stringify(initialData));
+        }
+      } else {
+        sysData = JSON.parse(JSON.stringify(initialData));
+        saveData();
+      }
+    }
+
+    window.onload = function() {
+      loadData();
+      startClock();
+      checkBankInterest();
+      renderAll();
+      initCharts();
+    };
+
+    function startClock() {
+      function update() {
+        const now = new Date();
+        const h = String(now.getHours()).padStart(2, '0');
+        const m = String(now.getMinutes()).padStart(2, '0');
+        const s = String(now.getSeconds()).padStart(2, '0');
+        
+        const elH = document.getElementById('clock-hours');
+        const elM = document.getElementById('clock-minutes');
+        const elS = document.getElementById('clock-seconds');
+        
+        if(elH) elH.innerText = h;
+        if(elM) elM.innerText = m;
+        if(elS) elS.innerText = s;
+      }
+      update();
+      setInterval(update, 1000);
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('bg-blue-900'));
+      
+      const target = document.getElementById(tabId);
+      if (target) target.classList.remove('hidden');
+      
+      const activeBtn = document.querySelector(`[data-tab="${tabId}"]`);
+      if (activeBtn) activeBtn.classList.add('bg-blue-900');
+
+      if (tabId === 'tab-stats') {
+        setTimeout(initCharts, 100);
+      }
+    }
+
+    function logPointChange(type, description, changeVal) {
+      if (!sysData.pointLogs) sysData.pointLogs = [];
+      sysData.pointLogs.unshift({
+        time: new Date().toLocaleString(),
+        type: type,
+        description: description,
+        change: changeVal >= 0 ? `+${changeVal.toFixed(1)}` : `${changeVal.toFixed(1)}`,
+        after: sysData.points.toFixed(1)
+      });
+      renderPointLogs();
+    }
+
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      let bgColor = 'bg-[#162A45]';
+      if (type === 'success') bgColor = 'bg-[#8F9E8B]';
+      if (type === 'error') bgColor = 'bg-[#B87D7B]';
+      if (type === 'warning') bgColor = 'bg-[#C9A87C]';
+
+      toast.className = `${bgColor} text-white px-4 py-2.5 rounded-lg border border-white/20 shadow-lg text-xs font-semibold mb-2 transition-all duration-300 transform translate-y-2 opacity-0 flex items-center gap-2`;
+      toast.innerHTML = `<i class="fa-solid fa-circle-info"></i> ${msg}`;
+
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 10);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    function addExpAndPoints(expVal, pointsVal, category = null) {
+      sysData.user.exp += expVal;
+      sysData.points += pointsVal;
+
+      if (category === 'life') sysData.user.attrLife += expVal;
+      if (category === 'study') sysData.user.attrStudy += expVal;
+      if (category === 'work') sysData.user.attrWork += expVal;
+
+      while (sysData.user.exp >= sysData.user.maxExp) {
+        sysData.user.exp -= sysData.user.maxExp;
+        sysData.user.level += 1;
+        sysData.user.maxExp = Math.floor(sysData.user.maxExp * 1.5);
+        showToast(`🎉 恭喜升级到 Lv.${sysData.user.level}！已有新头像解锁！`, 'success');
+      }
+
+      saveData();
+      renderHeaderStatus();
+      renderProfilePage();
+      renderShopItems();
+    }
+
+    function renderAll() {
+      renderHeaderStatus();
+      renderMonthTasks();
+      renderDailyTasks();
+      renderShopItems();
+      renderPointLogs();
+      renderBankPage();
+      renderProfilePage();
+    }
+
+    function renderHeaderStatus() {
+      document.getElementById('status-level').innerText = sysData.user.level;
+      document.getElementById('status-exp-bar').style.width = `${(sysData.user.exp / sysData.user.maxExp) * 100}%`;
+      document.getElementById('status-exp-text').innerText = `${sysData.user.exp}/${sysData.user.maxExp}`;
+      document.getElementById('status-attr-life').innerText = sysData.user.attrLife;
+      document.getElementById('status-attr-study').innerText = sysData.user.attrStudy;
+      document.getElementById('status-attr-work').innerText = sysData.user.attrWork;
+      document.getElementById('status-points').innerText = sysData.points.toFixed(1);
+      document.getElementById('status-fund').innerText = sysData.fund.toFixed(1);
+    }
+
+    function renderDailyTasks() {
+      const categories = ['life', 'study', 'work'];
+      categories.forEach(cat => {
+        const container = document.getElementById(`daily-list-${cat}`);
+        if (!container) return;
+        container.innerHTML = '';
+        
+        const tasks = sysData.dailyTasks[cat] || [];
+        if (tasks.length === 0) {
+          container.innerHTML = '<div class="text-xs text-[#8C9A9E] text-center py-4 font-semibold">暂无任务</div>';
+          return;
+        }
+
+        tasks.forEach(task => {
+          const item = document.createElement('div');
+          item.className = 'pixel-box-sm p-2.5 bg-white flex justify-between items-center text-xs border-[#D8D1C1]';
+          item.innerHTML = `
+            <label class="flex items-center gap-2 cursor-pointer flex-grow overflow-hidden pr-2">
+              <input type="checkbox" class="task-checkbox rounded border-[#162A45]" data-id="${task.id}" data-cat="${cat}">
+              <span class="truncate font-medium text-[#162A45]">${task.title}</span>
+            </label>
+            <div class="flex items-center gap-2 flex-shrink-0">
+              <span class="font-bodoni text-xs text-[#C9A87C] font-bold">+${task.point}分</span>
+              <button onclick="deleteDailyTask('${cat}', ${task.id})" class="text-[#D8D1C1] hover:text-[#B87D7B]"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          `;
+          container.appendChild(item);
+        });
+      });
+    }
+
+    function submitDailyTasks() {
+      const checkboxes = document.querySelectorAll('.task-checkbox:checked');
+      if (checkboxes.length === 0) {
+        showToast('请先选择已完成的任务！', 'warning');
+        return;
+      }
+
+      let totalPoints = 0;
+      let totalExp = 0;
+
+      checkboxes.forEach(cb => {
+        const cat = cb.dataset.cat;
+        const id = parseInt(cb.dataset.id);
+        const task = sysData.dailyTasks[cat].find(t => t.id === id);
+        if (task) {
+          totalPoints += task.point;
+          totalExp += task.point;
+          addExpAndPoints(task.point, task.point, cat);
+          logPointChange('income', `打卡任务: ${task.title}`, task.point);
+        }
+        cb.checked = false;
+      });
+
+      showToast(`打卡成功！增加 ${totalPoints} 积分，经验 +${totalExp}`, 'success');
+      renderAll();
+    }
+
+    function openAddTaskModal(cat) {
+      const modal = document.getElementById('global-modal');
+      document.getElementById('modal-title').innerText = `添加 ${cat === 'life' ? '生活' : cat === 'study' ? '学习' : '工作'} 任务`;
+      document.getElementById('modal-body').innerHTML = `
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">任务名称</label>
+          <input id="modal-task-title" type="text" class="w-full p-2 border rounded text-xs" placeholder="例如：背单词 / 整理房间">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">奖励积分</label>
+          <input id="modal-task-point" type="number" class="w-full p-2 border rounded text-xs" value="10" min="1">
+        </div>
+      `;
+      document.getElementById('modal-confirm-btn').onclick = function() {
+        const title = document.getElementById('modal-task-title').value.trim();
+        const point = parseFloat(document.getElementById('modal-task-point').value);
+        if (!title || isNaN(point) || point <= 0) {
+          showToast('请输入有效的任务信息！', 'warning');
+          return;
+        }
+        sysData.dailyTasks[cat].push({ id: Date.now(), title, point, attr: cat });
+        saveData();
+        renderDailyTasks();
+        closeModal();
+        showToast('新任务添加成功！', 'success');
+      };
+      modal.classList.remove('hidden');
+    }
+
+    function deleteDailyTask(cat, id) {
+      sysData.dailyTasks[cat] = sysData.dailyTasks[cat].filter(t => t.id !== id);
+      saveData();
+      renderDailyTasks();
+      showToast('任务已删除', 'info');
+    }
+
+    function renderShopItems() {
+      const grid = document.getElementById('shop-items-grid');
+      const pointEl = document.getElementById('shop-current-points');
+      if (pointEl) pointEl.innerText = sysData.points.toFixed(1);
+      if (!grid) return;
+
+      grid.innerHTML = '';
+      sysData.shopItems.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'pixel-box-sm p-4 bg-white flex flex-col justify-between h-full border-[#D8D1C1]';
+        card.innerHTML = `
+          <div>
+            <h4 class="font-bold text-sm text-[#162A45] mb-2">${item.title}</h4>
+            <div class="font-bodoni text-[#C9A87C] font-bold text-base">${item.price} 积分</div>
+          </div>
+          <div class="mt-4 flex gap-2">
+            <button onclick="buyShopItem(${item.id})" class="pixel-btn bg-[#C9A87C] text-white w-full py-1.5 rounded text-xs hover:bg-[#B59567]">
+              <i class="fa-solid fa-cart-shopping"></i> 兑换
+            </button>
+            <button onclick="deleteShopItem(${item.id})" class="text-[#D8D1C1] hover:text-[#B87D7B] px-1"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function buyShopItem(id) {
+      const item = sysData.shopItems.find(i => i.id === id);
+      if (!item) return;
+
+      if (sysData.points < item.price) {
+        showToast(`积分不足！还需要 ${(item.price - sysData.points).toFixed(1)} 积分`, 'error');
+        return;
+      }
+
+      sysData.points -= item.price;
+      logPointChange('expense', `商城兑换: ${item.title}`, -item.price);
+      saveData();
+      renderHeaderStatus();
+      renderShopItems();
+      showToast(`成功兑换：${item.title}！项目已保留，可再次兑换。`, 'success');
+    }
+
+    function openAddShopItemModal() {
+      const modal = document.getElementById('global-modal');
+      document.getElementById('modal-title').innerText = '添加积分商城商品';
+      document.getElementById('modal-body').innerHTML = `
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">商品/服务名称</label>
+          <input id="modal-shop-title" type="text" class="w-full p-2 border rounded text-xs" placeholder="例如：吃大餐 / 看一场电影">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">价格(积分)</label>
+          <input id="modal-shop-price" type="number" class="w-full p-2 border rounded text-xs" value="20" min="1">
+        </div>
+      `;
+      document.getElementById('modal-confirm-btn').onclick = function() {
+        const title = document.getElementById('modal-shop-title').value.trim();
+        const price = parseFloat(document.getElementById('modal-shop-price').value);
+        if (!title || isNaN(price) || price <= 0) {
+          showToast('请输入正确的商品信息！', 'warning');
+          return;
+        }
+        sysData.shopItems.push({ id: Date.now(), title, price });
+        saveData();
+        renderShopItems();
+        closeModal();
+        showToast('兑换商品添加成功！', 'success');
+      };
+      modal.classList.remove('hidden');
+    }
+
+    function deleteShopItem(id) {
+      sysData.shopItems = sysData.shopItems.filter(i => i.id !== id);
+      saveData();
+      renderShopItems();
+      showToast('商品已移除', 'info');
+    }
+
+    function renderPointLogs() {
+      const container = document.getElementById('shop-point-logs');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (!sysData.pointLogs || sysData.pointLogs.length === 0) {
+        container.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-[#8C9A9E]">暂无收支记录</td></tr>`;
+        return;
+      }
+
+      sysData.pointLogs.forEach(log => {
+        const tr = document.createElement('tr');
+        tr.className = 'border-b border-[#F7F6F2] hover:bg-[#F7F6F2]/50';
+        tr.innerHTML = `
+          <td class="p-2.5 text-[#8C9A9E] font-bodoni">${log.time}</td>
+          <td class="p-2.5"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${log.type === 'income' ? 'bg-[#8F9E8B]/20 text-[#2D402B]' : 'bg-[#B87D7B]/20 text-[#4A2625]'}">${log.type === 'income' ? '收入' : '支出'}</span></td>
+          <td class="p-2.5 font-medium text-[#162A45]">${log.description}</td>
+          <td class="p-2.5 font-bodoni font-bold ${log.type === 'income' ? 'text-[#8F9E8B]' : 'text-[#B87D7B]'}">${log.change}</td>
+          <td class="p-2.5 font-bodoni text-[#162A45]">${log.after}</td>
+        `;
+        container.appendChild(tr);
+      });
+    }
+
+    function clearPointLogs() {
+      sysData.pointLogs = [];
+      saveData();
+      renderPointLogs();
+      showToast('积分收支日志已清空', 'info');
+    }
+
+    function depositRemainingPointsToFund() {
+      if (sysData.points <= 0) {
+        showToast('当前没有可存入的剩余积分！', 'warning');
+        return;
+      }
+      const amount = sysData.points;
+      sysData.fund += amount;
+      sysData.todayDeposit += amount;
+      logPointChange('expense', '余分存入基金银行', -amount);
+      sysData.points = 0;
+      saveData();
+      renderAll();
+      showToast(`已将 ${amount.toFixed(1)} 积分存入基金银行！`, 'success');
+    }
+
+    function settleDailyPointsManually() {
+      depositRemainingPointsToFund();
+    }
+
+    function checkBankInterest(manual = false) {
+      if (!sysData.lastFundExpenseTime) sysData.lastFundExpenseTime = Date.now();
+      const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      const timeDiff = now - sysData.lastFundExpenseTime;
+
+      if (timeDiff >= SEVEN_DAYS_MS && sysData.fund > 0) {
+        const weeks = Math.floor(timeDiff / SEVEN_DAYS_MS);
+        let currentFund = sysData.fund;
+        let totalInterest = 0;
+
+        for (let i = 0; i < weeks; i++) {
+          const interest = currentFund * 0.03;
+          totalInterest += interest;
+          currentFund += interest;
+        }
+
+        const oldFund = sysData.fund;
+        sysData.fund = currentFund;
+        sysData.lastFundExpenseTime = now;
+
+        if (!sysData.interestLogs) sysData.interestLogs = [];
+        sysData.interestLogs.unshift({
+          time: new Date().toLocaleString(),
+          oldBalance: oldFund.toFixed(2),
+          rate: '3.0%',
+          interest: totalInterest.toFixed(2),
+          newBalance: sysData.fund.toFixed(2)
+        });
+
+        saveData();
+        renderHeaderStatus();
+        renderBankPage();
+        showToast(`💰 基金已满7天未调动！自动派发 +3% 利息 (+${totalInterest.toFixed(2)})`, 'success');
+      } else if (manual) {
+        const remainingDays = Math.ceil((SEVEN_DAYS_MS - timeDiff) / (24 * 60 * 60 * 1000));
+        showToast(`未满 7 天复利计息周期（还需约 ${remainingDays > 0 ? remainingDays : 1} 天）`, 'info');
+      }
+    }
+
+    function renderBankPage() {
+      const fundLarge = document.getElementById('bank-fund-large');
+      if (fundLarge) fundLarge.innerText = sysData.fund.toFixed(2);
+
+      const dep = document.getElementById('bank-today-deposit');
+      if (dep) dep.innerText = `+${sysData.todayDeposit.toFixed(1)}`;
+
+      const exp = document.getElementById('bank-today-expense');
+      if (exp) exp.innerText = `-${sysData.todayExpense.toFixed(1)}`;
+
+      const logsContainer = document.getElementById('bank-interest-logs');
+      if (logsContainer) {
+        logsContainer.innerHTML = '';
+        if (!sysData.interestLogs || sysData.interestLogs.length === 0) {
+          logsContainer.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-[#8C9A9E]">暂无利息日志与凭证</td></tr>`;
+        } else {
+          sysData.interestLogs.forEach(log => {
+            const tr = document.createElement('tr');
+            tr.className = 'border-b border-[#F7F6F2] hover:bg-[#F7F6F2]/50';
+            tr.innerHTML = `
+              <td class="p-3 text-[#8C9A9E] font-bodoni">${log.time}</td>
+              <td class="p-3 font-bodoni">${log.oldBalance}</td>
+              <td class="p-3 text-[#8F9E8B] font-bold font-bodoni">${log.rate}</td>
+              <td class="p-3 text-[#8F9E8B] font-bold font-bodoni">+${log.interest}</td>
+              <td class="p-3 font-bodoni font-bold text-[#162A45]">${log.newBalance}</td>
+            `;
+            logsContainer.appendChild(tr);
+          });
+        }
+      }
+
+      const bankGrid = document.getElementById('bank-shop-grid');
+      if (bankGrid) {
+        bankGrid.innerHTML = '';
+        sysData.shopItems.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'pixel-box-sm p-4 bg-white flex flex-col justify-between border-[#D8D1C1] h-full';
+          div.innerHTML = `
+            <div>
+              <div class="font-bold text-sm text-[#162A45] mb-2">${item.title}</div>
+              <div class="font-bodoni text-[#162A45] font-bold text-base mt-1">${item.price} 基金额度</div>
+            </div>
+            <button onclick="spendBankFund(${item.id})" class="mt-4 pixel-btn bg-[#162A45] text-white py-1.5 rounded text-xs hover:bg-[#253e61]">
+              <i class="fa-solid fa-receipt"></i> 基金直接支出
+            </button>
+          `;
+          bankGrid.appendChild(div);
+        });
+      }
+    }
+
+    function spendBankFund(shopItemId) {
+      const item = sysData.shopItems.find(i => i.id === shopItemId);
+      if (!item) return;
+
+      if (sysData.fund < item.price) {
+        showToast('基金余额不足以支付该项目！', 'error');
+        return;
+      }
+
+      sysData.fund -= item.price;
+      sysData.todayExpense += item.price;
+      sysData.lastFundExpenseTime = Date.now();
+      saveData();
+      renderAll();
+      showToast(`使用基金成功购买：${item.title} (消费 ${item.price} 基金)`, 'success');
+    }
+
+    function editFundBalance() {
+      const input = prompt('请输入新的基金余额：', sysData.fund.toFixed(2));
+      if (input !== null) {
+        const val = parseFloat(input);
+        if (!isNaN(val) && val >= 0) {
+          sysData.fund = val;
+          saveData();
+          renderAll();
+          showToast('基金余额更新成功！', 'success');
+        } else {
+          showToast('请输入有效的数字金额！', 'error');
+        }
+      }
+    }
+
+    function renderMonthTasks() {
+      const container = document.getElementById('month-tasks-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (!sysData.monthPlan || !sysData.monthPlan.tasks || sysData.monthPlan.tasks.length === 0) {
+        container.innerHTML = '<div class="col-span-full text-center text-[#8C9A9E] py-6 text-xs">暂无月度大任务，点击上方按钮新增</div>';
+        return;
+      }
+
+      document.getElementById('month-reward-points').innerText = sysData.monthPlan.reward || 300;
+      document.getElementById('month-penalty-points').innerText = sysData.monthPlan.penalty || 150;
+
+      sysData.monthPlan.tasks.forEach(task => {
+        const card = document.createElement('div');
+        card.className = `pixel-box-sm p-4 bg-white border-t-4 ${task.done ? 'border-t-[#8F9E8B]' : 'border-t-[#162A45]'} flex flex-col justify-between`;
+        
+        let subHtml = '';
+        if (task.sub && task.sub.length > 0) {
+          subHtml = task.sub.map((s, idx) => `
+            <div class="flex items-center gap-2 text-xs py-1 border-b border-[#F7F6F2]">
+              <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleSubTask(${task.id}, ${idx})" class="rounded border-[#162A45]">
+              <span class="${s.done ? 'line-through text-[#8C9A9E]' : 'text-[#162A45]'}">${s.text}</span>
+            </div>
+          `).join('');
+        }
+
+        card.innerHTML = `
+          <div>
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <h4 class="font-bold text-sm text-[#162A45] ${task.done ? 'line-through text-[#8C9A9E]' : ''}">${task.title}</h4>
+              <button onclick="deleteMonthTask(${task.id})" class="text-[#D8D1C1] hover:text-[#B87D7B] text-xs"><i class="fa-solid fa-trash"></i></button>
+            </div>
+            <div class="space-y-1 mb-3">${subHtml}</div>
+          </div>
+          <div class="pt-2 border-t border-[#D8D1C1]/50 flex justify-between items-center">
+            <button onclick="openAddSubTaskModal(${task.id})" class="text-[10px] text-[#8C9A9E] hover:text-[#162A45] font-bold">+ 子步骤</button>
+            <label class="flex items-center gap-1 text-xs cursor-pointer font-bold text-[#162A45]">
+              <input type="checkbox" ${task.done ? 'checked' : ''} onchange="toggleMonthTask(${task.id})" class="rounded border-[#162A45]"> 标注完成
+            </label>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function toggleMonthTask(id) {
+      const task = sysData.monthPlan.tasks.find(t => t.id === id);
+      if (task) {
+        task.done = !task.done;
+        saveData();
+        renderMonthTasks();
+      }
+    }
+
+    function toggleSubTask(taskId, subIdx) {
+      const task = sysData.monthPlan.tasks.find(t => t.id === taskId);
+      if (task && task.sub && task.sub[subIdx]) {
+        task.sub[subIdx].done = !task.sub[subIdx].done;
+        saveData();
+        renderMonthTasks();
+      }
+    }
+
+    function openAddMonthTaskModal() {
+      const modal = document.getElementById('global-modal');
+      document.getElementById('modal-title').innerText = '新增月度大任务';
+      document.getElementById('modal-body').innerHTML = `
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">大任务目标</label>
+          <input id="modal-month-title" type="text" class="w-full p-2 border rounded text-xs" placeholder="例如：一个月内跑步50公里">
+        </div>
+      `;
+      document.getElementById('modal-confirm-btn').onclick = function() {
+        const title = document.getElementById('modal-month-title').value.trim();
+        if (!title) {
+          showToast('请输入大任务目标！', 'warning');
+          return;
+        }
+        sysData.monthPlan.tasks.push({ id: Date.now(), title, sub: [], done: false });
+        saveData();
+        renderMonthTasks();
+        closeModal();
+        showToast('新增月度大任务成功！', 'success');
+      };
+      modal.classList.remove('hidden');
+    }
+
+    function openAddSubTaskModal(taskId) {
+      const modal = document.getElementById('global-modal');
+      document.getElementById('modal-title').innerText = '添加分解子步骤';
+      document.getElementById('modal-body').innerHTML = `
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">子步骤内容</label>
+          <input id="modal-sub-title" type="text" class="w-full p-2 border rounded text-xs" placeholder="例如：第1周跑满10公里">
+        </div>
+      `;
+      document.getElementById('modal-confirm-btn').onclick = function() {
+        const text = document.getElementById('modal-sub-title').value.trim();
+        if (!text) {
+          showToast('请输入子步骤内容！', 'warning');
+          return;
+        }
+        const task = sysData.monthPlan.tasks.find(t => t.id === taskId);
+        if (task) {
+          if (!task.sub) task.sub = [];
+          task.sub.push({ text, done: false });
+          saveData();
+          renderMonthTasks();
+        }
+        closeModal();
+        showToast('添加子步骤成功！', 'success');
+      };
+      modal.classList.remove('hidden');
+    }
+
+    function deleteMonthTask(id) {
+      sysData.monthPlan.tasks = sysData.monthPlan.tasks.filter(t => t.id !== id);
+      saveData();
+      renderMonthTasks();
+      showToast('月计划大任务已删除', 'info');
+    }
+
+    function settleMonthPlan() {
+      if (!sysData.monthPlan.tasks || sysData.monthPlan.tasks.length === 0) {
+        showToast('当前没有月计划任务！', 'warning');
+        return;
+      }
+
+      const total = sysData.monthPlan.tasks.length;
+      const completed = sysData.monthPlan.tasks.filter(t => t.done).length;
+
+      if (completed === total) {
+        const reward = sysData.monthPlan.reward || 300;
+        addExpAndPoints(reward, reward);
+        logPointChange('income', '月度计划全部完成奖励', reward);
+        showToast(`🎉 太棒了！月计划全部完成，获得 +${reward} 奖励积分！`, 'success');
+      } else {
+        const penalty = sysData.monthPlan.penalty || 150;
+        sysData.points = Math.max(0, sysData.points - penalty);
+        logPointChange('expense', `月度计划未完结扣罚 (${completed}/${total})`, -penalty);
+        showToast(`月末结算：完成 ${completed}/${total}，扣除 -${penalty} 积分。`, 'warning');
+      }
+      saveData();
+      renderAll();
+    }
+
+    function renderProfilePage() {
+      const nameEl = document.getElementById('profile-name');
+      if (nameEl) nameEl.innerText = sysData.user.name;
+      document.getElementById('profile-level').innerText = sysData.user.level;
+      document.getElementById('profile-attr-life').innerText = sysData.user.attrLife;
+      document.getElementById('profile-attr-study').innerText = sysData.user.attrStudy;
+      document.getElementById('profile-attr-work').innerText = sysData.user.attrWork;
+
+      const iconEl = document.getElementById('profile-avatar-icon');
+      if (iconEl) {
+        iconEl.className = `${sysData.user.avatarIcon || 'fa-solid fa-user-ninja'} text-[#F7F6F2]`;
+      }
+    }
+
+    function openAvatarModal() {
+      const modal = document.getElementById('global-modal');
+      document.getElementById('modal-title').innerText = '更换像素头像';
+      
+      let avatarListHtml = '<div class="grid grid-cols-3 gap-3 max-h-64 overflow-y-auto p-1">';
+      AVATAR_OPTIONS.forEach(avatar => {
+        const isUnlocked = sysData.user.level >= avatar.reqLevel;
+        const isSelected = sysData.user.avatarIcon === avatar.icon;
+        
+        avatarListHtml += `
+          <div onclick="${isUnlocked ? `selectAvatar('${avatar.icon}')` : ''}" 
+               class="p-3 border-2 rounded-lg text-center transition-all ${
+                 isUnlocked 
+                   ? isSelected 
+                     ? 'border-[#C9A87C] bg-[#C9A87C]/20 cursor-pointer shadow-sm' 
+                     : 'border-[#162A45]/20 hover:border-[#8C9A9E] cursor-pointer bg-white'
+                   : 'border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed'
+               }">
+            <div class="text-2xl mb-1 text-[#162A45]">
+              <i class="${avatar.icon}"></i>
+            </div>
+            <div class="text-xs font-bold text-[#162A45]">${avatar.name}</div>
+            <div class="text-[10px] ${isUnlocked ? 'text-[#8F9E8B] font-bold' : 'text-[#B87D7B]'}">
+              ${isUnlocked ? (isSelected ? '当前使用' : '已解锁') : `Lv.${avatar.reqLevel} 解锁`}
+            </div>
+          </div>
+        `;
+      });
+      avatarListHtml += '</div>';
+
+      document.getElementById('modal-body').innerHTML = avatarListHtml;
+      document.getElementById('modal-confirm-btn').onclick = closeModal;
+      modal.classList.remove('hidden');
+    }
+
+    function selectAvatar(iconClass) {
+      sysData.user.avatarIcon = iconClass;
+      saveData();
+      renderProfilePage();
+      closeModal();
+      showToast('头像更换成功！', 'success');
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('global-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function exportDataJSON() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(sysData, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `gamified_life_backup_${new Date().toISOString().slice(0,10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast('系统 JSON 备份导出成功！', 'success');
+    }
+
+    function importDataJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (imported && imported.user && imported.dailyTasks) {
+            sysData = imported;
+            saveData();
+            renderAll();
+            initCharts();
+            showToast('JSON 数据恢复成功！', 'success');
+          } else {
+            showToast('导入文件格式不符！', 'error');
+          }
+        } catch(err) {
+          showToast('读取数据文件失败，请检查文件编码！', 'error');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function clearSystemData() {
+      if (confirm('确认清空所有系统数据并恢复初始状态？（此操作不可逆）')) {
+        localStorage.removeItem(STORAGE_KEY);
+        loadData();
+        renderAll();
+        initCharts();
+        showToast('系统已成功重置！', 'info');
+      }
+    }
+
+    function initCharts() {
+      // 1. 7-Day Trend Chart
+      const ctxTrend = document.getElementById('chart-trend');
+      if (ctxTrend) {
+        if (chartTrendInstance) chartTrendInstance.destroy();
+        
+        const labels = sysData.historyTrends.map(t => t.date);
+        const values = sysData.historyTrends.map(t => t.points);
+
+        chartTrendInstance = new Chart(ctxTrend, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: '获得积分',
+              data: values,
+              borderColor: '#162A45',
+              backgroundColor: 'rgba(140, 154, 158, 0.2)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.3
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false }
+            },
+            scales: {
+              y: { beginAtZero: true }
+            }
+          }
+        });
+      }
+
+      // 2. Three Attributes Pie Chart
+      const ctxAttr = document.getElementById('chart-attr');
+      if (ctxAttr) {
+        if (chartAttrInstance) chartAttrInstance.destroy();
+
+        chartAttrInstance = new Chart(ctxAttr, {
+          type: 'doughnut',
+          data: {
+            labels: ['生活', '学习', '工作'],
+            datasets: [{
+              data: [sysData.user.attrLife || 1, sysData.user.attrStudy || 1, sysData.user.attrWork || 1],
+              backgroundColor: ['#8F9E8B', '#8C9A9E', '#B87D7B'],
+              borderWidth: 2,
+              borderColor: '#FFFFFF'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom' }
+            }
+          }
+        });
+      }
+    }
+  </script>
+</body>
+</html>
