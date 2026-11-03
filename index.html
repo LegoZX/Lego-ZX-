@@ -188,6 +188,9 @@
       <button onclick="switchTab('tab-stats')" class="nav-btn px-4 py-1.5 rounded-t-lg font-semibold flex items-center gap-2 hover:bg-[#8C9A9E]/30 transition" data-tab="tab-stats">
         <i class="fa-solid fa-chart-line"></i> 历史数据
       </button>
+      <button onclick="switchTab('tab-money')" class="nav-btn px-4 py-1.5 rounded-t-lg font-semibold flex items-center gap-2 hover:bg-[#8C9A9E]/30 transition" data-tab="tab-money">
+        <i class="fa-solid fa-wallet"></i> 记账管理
+      </button>
       <button onclick="switchTab('tab-profile')" class="nav-btn px-4 py-1.5 rounded-t-lg font-semibold flex items-center gap-2 hover:bg-[#8C9A9E]/30 transition" data-tab="tab-profile">
         <i class="fa-solid fa-user-gear"></i> 个人角色
       </button>
@@ -488,6 +491,91 @@
       </div>
     </section>
 
+    <!-- ==================== 页面: 记账管理 ==================== -->
+    <section id="tab-money" class="tab-content hidden">
+      <div class="pixel-box p-6 mb-6">
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-[#D8D1C1] pb-4 mb-6">
+          <div>
+            <h2 class="text-2xl font-bold text-[#162A45]">记账管理 <span class="font-bodoni text-lg text-[#8C9A9E] font-normal">MONEY LOGS</span></h2>
+            <p class="text-xs text-[#8C9A9E] mt-1">记录每日真实财务收支，积累个人财富资产</p>
+          </div>
+        </div>
+
+        <!-- 今日收支概览 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div class="pixel-box-sm p-4 bg-[#8F9E8B]/15 border-[#8F9E8B] flex items-center justify-between">
+            <div>
+              <div class="text-xs text-[#2D402B] font-bold">今日总收入</div>
+              <div id="money-today-income" class="text-2xl font-bodoni font-bold text-[#8F9E8B] mt-1">¥ 0.00</div>
+            </div>
+            <i class="fa-solid fa-arrow-trend-up text-3xl text-[#8F9E8B]/60"></i>
+          </div>
+          <div class="pixel-box-sm p-4 bg-[#B87D7B]/15 border-[#B87D7B] flex items-center justify-between">
+            <div>
+              <div class="text-xs text-[#4A2625] font-bold">今日总支出</div>
+              <div id="money-today-expense" class="text-2xl font-bodoni font-bold text-[#B87D7B] mt-1">¥ 0.00</div>
+            </div>
+            <i class="fa-solid fa-arrow-trend-down text-3xl text-[#B87D7B]/60"></i>
+          </div>
+        </div>
+
+        <!-- 记账表单卡片 -->
+        <div class="pixel-box-sm p-5 bg-white border-[#D8D1C1] mb-8">
+          <h3 class="font-bold text-[#162A45] text-sm mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-pen-to-square text-[#C9A87C]"></i> 快捷记账模板
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-[#162A45] mb-1">交易类型</label>
+              <select id="money-input-type" class="w-full p-2 border border-[#162A45] rounded text-xs bg-[#F7F6F2] font-bold">
+                <option value="expense">支出 (-)</option>
+                <option value="income">收入 (+)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-[#162A45] mb-1">金额 (元)</label>
+              <input id="money-input-amount" type="number" step="0.01" class="w-full p-2 border border-[#162A45] rounded text-xs font-bodoni" placeholder="0.00">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-[#162A45] mb-1">分类描述</label>
+              <input id="money-input-title" type="text" class="w-full p-2 border border-[#162A45] rounded text-xs" placeholder="例如：餐饮 / 购物 / 工资">
+            </div>
+            <div class="flex items-end">
+              <button onclick="addMoneyLogRecord()" class="pixel-btn bg-[#162A45] text-white w-full py-2 rounded text-xs flex items-center justify-center gap-2 hover:bg-[#253e61]">
+                <i class="fa-solid fa-check"></i> 提交保存账单
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 过往历史数据明细 -->
+        <div class="border-t border-[#D8D1C1] pt-6">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-[#162A45] text-lg flex items-center gap-2">
+              <i class="fa-solid fa-clock-rotate-left text-[#8C9A9E]"></i> 过往记账历史数据
+            </h3>
+            <button onclick="clearMoneyLogsRecords()" class="text-xs text-[#8C9A9E] hover:text-[#B87D7B] font-bold">清空账单历史</button>
+          </div>
+          <div class="overflow-x-auto max-h-80 overflow-y-auto pixel-box-sm bg-white">
+            <table class="w-full text-xs text-left border-collapse">
+              <thead class="sticky top-0 bg-[#F7F6F2] border-b border-[#D8D1C1] text-[#162A45]">
+                <tr>
+                  <th class="p-3">日期时间</th>
+                  <th class="p-3">类型</th>
+                  <th class="p-3">说明事项</th>
+                  <th class="p-3">金额(元)</th>
+                  <th class="p-3 text-right">操作</th>
+                </tr>
+              </thead>
+              <tbody id="money-logs-tbody">
+                <!-- 动态渲染记账历史数据 -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ==================== 页面7: 个人角色面板 ==================== -->
     <section id="tab-profile" class="tab-content hidden">
       <div class="grid md:grid-cols-3 gap-6">
@@ -635,6 +723,7 @@
       lastFundExpenseTime: Date.now(),
       interestLogs: [],
       pointLogs: [],
+      moneyLogs: [],
       monthPlan: {
         reward: 300,
         penalty: 150,
@@ -689,6 +778,7 @@
           if (!sysData.lastFundExpenseTime) sysData.lastFundExpenseTime = Date.now();
           if (!sysData.interestLogs) sysData.interestLogs = [];
           if (!sysData.pointLogs) sysData.pointLogs = [];
+          if (!sysData.moneyLogs) sysData.moneyLogs = [];
           if (!sysData.user.avatarIcon) sysData.user.avatarIcon = 'fa-solid fa-user-ninja';
         } catch(e) {
           sysData = JSON.parse(JSON.stringify(initialData));
@@ -753,6 +843,99 @@
       renderPointLogs();
     }
 
+    function renderPointLogs() {
+      const tbody = document.getElementById('shop-point-logs');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      if (!sysData.pointLogs || sysData.pointLogs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-3 text-center text-[#8C9A9E]">暂无积分收支明细记录</td></tr>`;
+        return;
+      }
+
+      sysData.pointLogs.forEach(log => {
+        const tr = document.createElement('tr');
+        tr.className = 'border-b border-[#F7F6F2] hover:bg-[#F7F6F2]/50';
+        tr.innerHTML = `
+          <td class="p-2.5 text-[#8C9A9E] font-bodoni">${log.time}</td>
+          <td class="p-2.5"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${log.type === 'income' ? 'bg-[#8F9E8B]/20 text-[#2D402B]' : 'bg-[#B87D7B]/20 text-[#4A2625]'}">${log.type === 'income' ? '收入' : '支出'}</span></td>
+          <td class="p-2.5 font-medium text-[#162A45]">${log.description}</td>
+          <td class="p-2.5 font-bodoni font-bold ${log.type === 'income' ? 'text-[#8F9E8B]' : 'text-[#B87D7B]'}">${log.change}</td>
+          <td class="p-2.5 font-bodoni font-bold text-[#162A45]">${log.after}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function depositRemainingPointsToFund() {
+      if (sysData.points <= 0) {
+        showToast('当前没有可存入的流动积分！', 'warning');
+        return;
+      }
+      const amount = sysData.points;
+      sysData.fund += amount;
+      sysData.todayDeposit += amount;
+      sysData.points = 0;
+
+      logPointChange('expense', '一键全额存入基金', -amount);
+      saveData();
+      renderAll();
+      showToast(`已成功将 +${amount.toFixed(1)} 积分划转至基金银行！`, 'success');
+    }
+
+    function clearPointLogs() {
+      if (confirm('确认清空所有积分收支明细记录？')) {
+        sysData.pointLogs = [];
+        saveData();
+        renderPointLogs();
+        showToast('积分收支日志已清空', 'info');
+      }
+    }
+
+    function checkBankInterest(isManual = false) {
+      if (!sysData.lastFundExpenseTime) {
+        sysData.lastFundExpenseTime = Date.now();
+        saveData();
+        return;
+      }
+
+      const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+      const timePassed = Date.now() - sysData.lastFundExpenseTime;
+
+      if (timePassed >= SEVEN_DAYS_MS) {
+        if (sysData.fund > 0) {
+          const interestRate = 0.03;
+          const oldBalance = sysData.fund;
+          const interestEarned = oldBalance * interestRate;
+          const newBalance = oldBalance + interestEarned;
+
+          sysData.fund = newBalance;
+          sysData.lastFundExpenseTime = Date.now(); // Reset timer for next 7 days
+
+          if (!sysData.interestLogs) sysData.interestLogs = [];
+          sysData.interestLogs.unshift({
+            time: new Date().toLocaleString(),
+            oldBalance: oldBalance.toFixed(2),
+            rate: '+3.0%',
+            interest: interestEarned.toFixed(2),
+            newBalance: newBalance.toFixed(2)
+          });
+
+          saveData();
+          showToast(`💰 触发基金银行周利息！获得了 +${interestEarned.toFixed(2)} 元 3% 利息`, 'success');
+        } else {
+          sysData.lastFundExpenseTime = Date.now();
+          saveData();
+          if (isManual) showToast('当前基金余额为 0，无法计算利息。', 'info');
+        }
+      } else {
+        if (isManual) {
+          const remainingDays = Math.ceil((SEVEN_DAYS_MS - timePassed) / (24 * 60 * 60 * 1000));
+          showToast(`未满7天未消费，距离下次结算派息还需约 ${remainingDays} 天。`, 'info');
+        }
+      }
+    }
+
     function showToast(msg, type = 'info') {
       const container = document.getElementById('toast-container');
       const toast = document.createElement('div');
@@ -803,6 +986,7 @@
       renderShopItems();
       renderPointLogs();
       renderBankPage();
+      renderMoneyLogsPage();
       renderProfilePage();
     }
 
@@ -990,93 +1174,93 @@
       showToast('商品已移除', 'info');
     }
 
-    function renderPointLogs() {
-      const container = document.getElementById('shop-point-logs');
-      if (!container) return;
-      container.innerHTML = '';
+    function renderMoneyLogsPage() {
+      if (!sysData.moneyLogs) sysData.moneyLogs = [];
 
-      if (!sysData.pointLogs || sysData.pointLogs.length === 0) {
-        container.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-[#8C9A9E]">暂无收支记录</td></tr>`;
+      const todayStr = new Date().toLocaleDateString();
+      let todayIncome = 0;
+      let todayExpense = 0;
+
+      sysData.moneyLogs.forEach(item => {
+        const itemDateStr = new Date(item.timestamp).toLocaleDateString();
+        if (itemDateStr === todayStr) {
+          if (item.type === 'income') todayIncome += item.amount;
+          if (item.type === 'expense') todayExpense += item.amount;
+        }
+      });
+
+      const incEl = document.getElementById('money-today-income');
+      const expEl = document.getElementById('money-today-expense');
+      if (incEl) incEl.innerText = `¥ ${todayIncome.toFixed(2)}`;
+      if (expEl) expEl.innerText = `¥ ${todayExpense.toFixed(2)}`;
+
+      const tbody = document.getElementById('money-logs-tbody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      if (sysData.moneyLogs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-[#8C9A9E]">暂无记账记录</td></tr>`;
         return;
       }
 
-      sysData.pointLogs.forEach(log => {
+      sysData.moneyLogs.forEach(log => {
         const tr = document.createElement('tr');
         tr.className = 'border-b border-[#F7F6F2] hover:bg-[#F7F6F2]/50';
         tr.innerHTML = `
-          <td class="p-2.5 text-[#8C9A9E] font-bodoni">${log.time}</td>
-          <td class="p-2.5"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${log.type === 'income' ? 'bg-[#8F9E8B]/20 text-[#2D402B]' : 'bg-[#B87D7B]/20 text-[#4A2625]'}">${log.type === 'income' ? '收入' : '支出'}</span></td>
-          <td class="p-2.5 font-medium text-[#162A45]">${log.description}</td>
-          <td class="p-2.5 font-bodoni font-bold ${log.type === 'income' ? 'text-[#8F9E8B]' : 'text-[#B87D7B]'}">${log.change}</td>
-          <td class="p-2.5 font-bodoni text-[#162A45]">${log.after}</td>
+          <td class="p-3 text-[#8C9A9E] font-bodoni">${log.time}</td>
+          <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${log.type === 'income' ? 'bg-[#8F9E8B]/20 text-[#2D402B]' : 'bg-[#B87D7B]/20 text-[#4A2625]'}">${log.type === 'income' ? '收入' : '支出'}</span></td>
+          <td class="p-3 font-medium text-[#162A45]">${log.title}</td>
+          <td class="p-3 font-bodoni font-bold ${log.type === 'income' ? 'text-[#8F9E8B]' : 'text-[#B87D7B]'}">${log.type === 'income' ? '+' : '-'}${log.amount.toFixed(2)}</td>
+          <td class="p-3 text-right">
+            <button onclick="deleteMoneyLogRecord(${log.id})" class="text-[#D8D1C1] hover:text-[#B87D7B]"><i class="fa-solid fa-trash"></i></button>
+          </td>
         `;
-        container.appendChild(tr);
+        tbody.appendChild(tr);
       });
     }
 
-    function clearPointLogs() {
-      sysData.pointLogs = [];
-      saveData();
-      renderPointLogs();
-      showToast('积分收支日志已清空', 'info');
-    }
+    function addMoneyLogRecord() {
+      const type = document.getElementById('money-input-type').value;
+      const amount = parseFloat(document.getElementById('money-input-amount').value);
+      const title = document.getElementById('money-input-title').value.trim();
 
-    function depositRemainingPointsToFund() {
-      if (sysData.points <= 0) {
-        showToast('当前没有可存入的剩余积分！', 'warning');
+      if (!title || isNaN(amount) || amount <= 0) {
+        showToast('请输入有效的分类描述与正确金额！', 'warning');
         return;
       }
-      const amount = sysData.points;
-      sysData.fund += amount;
-      sysData.todayDeposit += amount;
-      logPointChange('expense', '余分存入基金银行', -amount);
-      sysData.points = 0;
+
+      if (!sysData.moneyLogs) sysData.moneyLogs = [];
+
+      sysData.moneyLogs.unshift({
+        id: Date.now(),
+        timestamp: Date.now(),
+        time: new Date().toLocaleString(),
+        type: type,
+        title: title,
+        amount: amount
+      });
+
+      document.getElementById('money-input-amount').value = '';
+      document.getElementById('money-input-title').value = '';
+
       saveData();
-      renderAll();
-      showToast(`已将 ${amount.toFixed(1)} 积分存入基金银行！`, 'success');
+      renderMoneyLogsPage();
+      showToast(`已成功保存账单：${type === 'income' ? '+' : '-'}${amount.toFixed(2)} 元`, 'success');
     }
 
-    function settleDailyPointsManually() {
-      depositRemainingPointsToFund();
+    function deleteMoneyLogRecord(id) {
+      sysData.moneyLogs = sysData.moneyLogs.filter(item => item.id !== id);
+      saveData();
+      renderMoneyLogsPage();
+      showToast('已删除该笔记账记录', 'info');
     }
 
-    function checkBankInterest(manual = false) {
-      if (!sysData.lastFundExpenseTime) sysData.lastFundExpenseTime = Date.now();
-      const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-      const now = Date.now();
-      const timeDiff = now - sysData.lastFundExpenseTime;
-
-      if (timeDiff >= SEVEN_DAYS_MS && sysData.fund > 0) {
-        const weeks = Math.floor(timeDiff / SEVEN_DAYS_MS);
-        let currentFund = sysData.fund;
-        let totalInterest = 0;
-
-        for (let i = 0; i < weeks; i++) {
-          const interest = currentFund * 0.03;
-          totalInterest += interest;
-          currentFund += interest;
-        }
-
-        const oldFund = sysData.fund;
-        sysData.fund = currentFund;
-        sysData.lastFundExpenseTime = now;
-
-        if (!sysData.interestLogs) sysData.interestLogs = [];
-        sysData.interestLogs.unshift({
-          time: new Date().toLocaleString(),
-          oldBalance: oldFund.toFixed(2),
-          rate: '3.0%',
-          interest: totalInterest.toFixed(2),
-          newBalance: sysData.fund.toFixed(2)
-        });
-
+    function clearMoneyLogsRecords() {
+      if (confirm('确认清空过往所有记账历史数据？')) {
+        sysData.moneyLogs = [];
         saveData();
-        renderHeaderStatus();
-        renderBankPage();
-        showToast(`💰 基金已满7天未调动！自动派发 +3% 利息 (+${totalInterest.toFixed(2)})`, 'success');
-      } else if (manual) {
-        const remainingDays = Math.ceil((SEVEN_DAYS_MS - timeDiff) / (24 * 60 * 60 * 1000));
-        showToast(`未满 7 天复利计息周期（还需约 ${remainingDays > 0 ? remainingDays : 1} 天）`, 'info');
+        renderMoneyLogsPage();
+        showToast('记账历史数据已清空', 'info');
       }
     }
 
